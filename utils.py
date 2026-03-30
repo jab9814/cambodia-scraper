@@ -1,0 +1,38 @@
+import logging
+import json
+from pathlib import Path
+from constants import JSON_FIELDS
+
+
+OUTPUT_DIR = Path("output")
+logger = logging.getLogger(__name__)
+
+
+def build_filename(filing_number: str) -> str:
+    """'KH/49633/12' → 'KH4963312'"""
+    return filing_number.replace("/", "")
+
+
+def save_html(content: str, filing_number: str) -> None:
+    filename = build_filename(filing_number)
+    path = OUTPUT_DIR / f"{filename}_1.html"
+    path.write_text(content, encoding="utf-8")
+    logger.info(f"HTML guardado: {path}")
+
+
+def save_image(content: bytes, filing_number: str) -> None:
+    filename = build_filename(filing_number)
+    path = OUTPUT_DIR / f"{filename}_2.jpg"
+    path.write_bytes(content)
+    logger.info(f"Imagen guardada: {path}")
+
+
+def save_json(records: list[dict]) -> None:
+    path = OUTPUT_DIR / "trademarks.json"
+    data = [{field: r.get(field) for field in JSON_FIELDS} for r in records]
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    logger.info(f"JSON guardado: {path}")
+
+
+def ensure_output_dir() -> None:
+    OUTPUT_DIR.mkdir(exist_ok=True)
