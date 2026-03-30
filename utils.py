@@ -1,11 +1,12 @@
 import logging
-import logging.handlers
 import json
 from pathlib import Path
 from constants import JSON_FIELDS
 
 
 LOGS_DIR = Path("logs")
+OUTPUT_DIR = Path("output")
+logger = logging.getLogger(__name__)
 
 
 def setup_logging() -> None:
@@ -19,8 +20,6 @@ def setup_logging() -> None:
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=handlers
     )
-
-
 
 
 def build_filename(filing_number: str) -> str:
