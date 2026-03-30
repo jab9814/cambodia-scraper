@@ -41,11 +41,12 @@ def save_image(content: bytes, filing_number: str) -> None:
     logger.info(f"Imagen guardada: {path}")
 
 
-def save_json(records: list[dict]) -> None:
+def save_json(record: dict) -> None:
     path = OUTPUT_DIR / "trademarks.json"
-    data = [{field: r.get(field) for field in JSON_FIELDS} for r in records]
+    data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    data.append({field: record.get(field) for field in JSON_FIELDS} | {"scraped_status": record.get("scraped_status")})
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-    logger.info(f"JSON guardado: {path}")
+    logger.info(f"[{record.get('number', '').split(' ')[0]}] Registro guardado en JSON.")
 
 
 def ensure_output_dir() -> None:

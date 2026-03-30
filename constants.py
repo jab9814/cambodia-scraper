@@ -21,12 +21,14 @@ class ScrapeMode(str, Enum):
     ALL = "all"
 
 
-MAX_RECORDS = 10
-PER_PAGE = 20
-ACTIVE_MODE = ScrapeMode.LIST
+MAX_RECORDS = 5
+PER_PAGE = 3
 
+# ACTIVE_MODE = ScrapeMode.ALL  # Para realizar la busqueda de todos los registros disponibles en la API (hasta MAX_RECORDS)
+ACTIVE_MODE = ScrapeMode.LIST  # Para realizar la busqueda con los filing numbers especificados en FILING_NUMBERS
 
 FILING_NUMBERS = [
+    # Registros solicitados como minimo en la prueba
     "KH/49633/12",
     "KH/59286/14",
     "KH/83498/19",
