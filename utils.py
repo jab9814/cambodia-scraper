@@ -1,11 +1,26 @@
 import logging
+import logging.handlers
 import json
 from pathlib import Path
 from constants import JSON_FIELDS
 
 
-OUTPUT_DIR = Path("output")
-logger = logging.getLogger(__name__)
+LOGS_DIR = Path("logs")
+
+
+def setup_logging() -> None:
+    LOGS_DIR.mkdir(exist_ok=True)
+    handlers = [
+        logging.StreamHandler(),
+        logging.FileHandler(LOGS_DIR / "scraper.log", encoding="utf-8")
+    ]
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=handlers
+    )
+
+
 
 
 def build_filename(filing_number: str) -> str:

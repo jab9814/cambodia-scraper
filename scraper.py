@@ -3,10 +3,10 @@ import logging
 import httpx
 from playwright.async_api import async_playwright
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
-from utils import save_html, save_image, save_json, ensure_output_dir
+from utils import save_html, save_image, save_json, ensure_output_dir, setup_logging
 from constants import URL, ImageType, FILING_NUMBERS, ScrapeMode, MAX_RECORDS, PER_PAGE, ACTIVE_MODE, build_search_payload
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
