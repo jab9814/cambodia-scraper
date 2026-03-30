@@ -8,12 +8,12 @@ class URL(str, Enum):
     IMAGE = "/trademark-detail-logo"
 
 
-class SearchKey(str, Enum):
-    ALL = "all"
-
-
 class ImageType(str, Enum):
     DETAIL_SCREEN = "ts_logo_detail_screen"
+
+
+class SearchKey(str, Enum):
+    ALL = "all"
 
 
 class ScrapeMode(str, Enum):
@@ -26,6 +26,13 @@ PER_PAGE = 20
 ACTIVE_MODE = ScrapeMode.LIST
 
 
+FILING_NUMBERS = [
+    "KH/49633/12",
+    "KH/59286/14",
+    "KH/83498/19",
+]
+
+
 def build_search_payload(value: str, page: int = 1, per_page: int = PER_PAGE) -> dict:
     return {
         "data": {
@@ -33,22 +40,30 @@ def build_search_payload(value: str, page: int = 1, per_page: int = PER_PAGE) ->
             "perPage": str(per_page),
             "search": {"key": SearchKey.ALL, "value": value},
             "filter": {
-                "province": [], "country": [], "status": [],
-                "applicationType": [], "markFeature": [], "classification": [],
-                "date": [], "fillDate": [], "regisDate": [], "receptionDate": []
+                "province": [], 
+                "country": [], 
+                "status": [],
+                "applicationType": [], 
+                "markFeature": [], 
+                "classification": [],
+                "date": [], 
+                "fillDate": [], 
+                "regisDate": [], 
+                "receptionDate": []
             },
-            "advanceSearch": [{"type": "all", "strategy": "contains_word", "selectedValues": [], "inputValue": "", "connectingOperator": "OR"}],
+            "advanceSearch": [
+                {
+                    "type": "all", 
+                    "strategy": "contains_word", 
+                    "selectedValues": [], 
+                    "inputValue": "", 
+                    "connectingOperator": "OR"
+                }
+            ],
             "isAdvanceSearch": "false",
             "dateOption": ""
         }
     }
-
-
-FILING_NUMBERS = [
-    "KH/49633/12",
-    "KH/59286/14",
-    "KH/83498/19",
-]
 
 
 JSON_FIELDS = [
