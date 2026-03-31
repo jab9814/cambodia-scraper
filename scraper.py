@@ -11,6 +11,29 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
+async def main() -> None:
+    ensure_output_dir()
+    (OUTPUT_DIR / "trademarks.json").unlink(missing_ok=True)
+
+    try:
+        cookies = await get_session_cookies()
+    except RetryError:
+        logger.error("No se pudo obtener la sesión después de 3 intentos. Verifique su conexión o el estado del sitio.")
+        return
+
+    logger.info("Cookies de sesión obtenidas.")
+
+    async with httpx.AsyncClient(base_url=URL.BASE.value, cookies=cookies, timeout=30) as client:
+        if ACTIVE_MODE == ScrapeMode.LIST:
+            logger.info("Iniciando modo LIST... Busqueda de registros especificados.")
+            await scrape_list(client)
+        else:
+            logger.info("Iniciando modo ALL... Busqueda de todos los registros disponibles en la API.")
+            await scrape_all(client)
+
+    logger.info("Scraping completado.")
+
+
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(5), retry=retry_if_exception_type(Exception))
 async def get_session_cookies() -> dict:
     """Abre el sitio con Playwright y retorna las cookies de sesión."""
@@ -22,7 +45,25 @@ async def get_session_cookies() -> dict:
         await page.goto(f"{URL.BASE.value}/en/trademark-search", wait_until="networkidle", timeout=30000)
         cookies = await context.cookies()
         await browser.close()
-    return {cookie["name"]: cookie["value"] for cookie in cookies}
+    output_cookies = {cookie["name"]: cookie["value"] for cookie in cookies}
+    logger.info(f"Cookies obtenidas: {output_cookies}")
+    return output_cookies
+
+
+async def scrape_list(client: httpx.AsyncClient) -> None:
+    """Modo lista: procesa los filing numbers de FILING_NUMBERS."""
+    await asyncio.gather(*[search_and_scrape(client, filing_number) for filing_number in FILING_NUMBERS])
+
+
+async def search_and_scrape(client: httpx.AsyncClient, filing_number: str) -> None:
+    """Busca un filing number y ejecuta el scraping completo."""
+    try:
+        result = await search_trademark(client, filing_number)
+    except RetryError:
+        logger.error(f"[{filing_number}] No se pudo obtener datos de la API después de 3 intentos.")
+        return
+    if result:
+        await scrape(client, result)
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(httpx.HTTPError))
@@ -47,34 +88,25 @@ async def search_trademark(client: httpx.AsyncClient, filing_number: str) -> dic
     return None
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
-async def get_detail_html(trademark_id: str, file_type: str, filing_number: str) -> str:
-    """Carga la página de detalle con Playwright y retorna el HTML renderizado."""
-    url = f"{URL.BASE.value}{URL.DETAIL.value}?afnb={trademark_id}&mdftyp={file_type}"
-    logger.info(f"[{filing_number}] Cargando HTML de detalle...")
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto(url, wait_until="networkidle", timeout=30000)
-        html = await page.content()
-        await browser.close()
-    logger.info(f"[{filing_number}] HTML obtenido correctamente.")
-    return html
+async def scrape_all(client: httpx.AsyncClient) -> None:
+    """Modo completo: pagina la API hasta obtener MAX_RECORDS registros."""
+    total_pages = math.ceil(MAX_RECORDS / PER_PAGE)
+    records = []
 
+    for page in range(1, total_pages + 1):
+        per_page = min(PER_PAGE, MAX_RECORDS - len(records))
+        payload = build_search_payload("", page=page, per_page=per_page)
+        response = await client.post(URL.SEARCH.value, json=payload)
+        response.raise_for_status()
+        batch = response.json()["data"]["data"]
+        if not batch:
+            logger.warning(f"Página {page} sin resultados, deteniendo.")
+            break
+        records.extend(batch)
+        logger.info(f"Página {page}/{total_pages} obtenida: {len(batch)} registros.")
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(httpx.HTTPError))
-async def get_image(client: httpx.AsyncClient, trademark_id: str, filing_number: str) -> bytes | None:
-    """Descarga la imagen de la marca usando httpx con cookies de sesión."""
-    logger.info(f"[{filing_number}] Descargando imagen...")
-    response = await client.get(f"{URL.IMAGE.value}/{trademark_id}", params={"type": ImageType.DETAIL_SCREEN.value})
-
-    if response.status_code == 404:
-        logger.warning(f"[{filing_number}] Imagen no disponible.")
-        return None
-
-    response.raise_for_status()
-    logger.info(f"[{filing_number}] Imagen obtenida correctamente.")
-    return response.content
+    logger.info(f"Total registros obtenidos: {len(records)}")
+    await asyncio.gather(*[scrape(client, record) for record in records])
 
 
 async def scrape(client: httpx.AsyncClient, result: dict) -> dict | None:
@@ -107,64 +139,34 @@ async def scrape(client: httpx.AsyncClient, result: dict) -> dict | None:
     return result
 
 
-async def search_and_scrape(client: httpx.AsyncClient, filing_number: str) -> None:
-    """Busca un filing number y ejecuta el scraping completo."""
-    try:
-        result = await search_trademark(client, filing_number)
-    except RetryError:
-        logger.error(f"[{filing_number}] No se pudo obtener datos de la API después de 3 intentos.")
-        return
-    if result:
-        await scrape(client, result)
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
+async def get_detail_html(trademark_id: str, file_type: str, filing_number: str) -> str:
+    """Carga la página de detalle con Playwright y retorna el HTML renderizado."""
+    url = f"{URL.BASE.value}{URL.DETAIL.value}?afnb={trademark_id}&mdftyp={file_type}"
+    logger.info(f"[{filing_number}] Cargando HTML de detalle...")
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+        await page.goto(url, wait_until="networkidle", timeout=30000)
+        html = await page.content()
+        await browser.close()
+    logger.info(f"[{filing_number}] HTML obtenido correctamente.")
+    return html
 
 
-async def scrape_list(client: httpx.AsyncClient) -> None:
-    """Modo lista: procesa los filing numbers de FILING_NUMBERS."""
-    await asyncio.gather(*[search_and_scrape(client, filing_number) for filing_number in FILING_NUMBERS])
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(httpx.HTTPError))
+async def get_image(client: httpx.AsyncClient, trademark_id: str, filing_number: str) -> bytes | None:
+    """Descarga la imagen de la marca usando httpx con cookies de sesión."""
+    logger.info(f"[{filing_number}] Descargando imagen...")
+    response = await client.get(f"{URL.IMAGE.value}/{trademark_id}", params={"type": ImageType.DETAIL_SCREEN.value})
 
+    if response.status_code == 404:
+        logger.warning(f"[{filing_number}] Imagen no disponible.")
+        return None
 
-async def scrape_all(client: httpx.AsyncClient) -> None:
-    """Modo completo: pagina la API hasta obtener MAX_RECORDS registros."""
-    total_pages = math.ceil(MAX_RECORDS / PER_PAGE)
-    records = []
-
-    for page in range(1, total_pages + 1):
-        per_page = min(PER_PAGE, MAX_RECORDS - len(records))
-        payload = build_search_payload("", page=page, per_page=per_page)
-        response = await client.post(URL.SEARCH.value, json=payload)
-        response.raise_for_status()
-        batch = response.json()["data"]["data"]
-        if not batch:
-            logger.warning(f"Página {page} sin resultados, deteniendo.")
-            break
-        records.extend(batch)
-        logger.info(f"Página {page}/{total_pages} obtenida: {len(batch)} registros.")
-
-    logger.info(f"Total registros obtenidos: {len(records)}")
-    await asyncio.gather(*[scrape(client, record) for record in records])
-
-
-async def main() -> None:
-    ensure_output_dir()
-    (OUTPUT_DIR / "trademarks.json").unlink(missing_ok=True)
-
-    try:
-        cookies = await get_session_cookies()
-    except RetryError:
-        logger.error("No se pudo obtener la sesión después de 3 intentos. Verifique su conexión o el estado del sitio.")
-        return
-
-    logger.info("Cookies de sesión obtenidas.")
-
-    async with httpx.AsyncClient(base_url=URL.BASE.value, cookies=cookies, timeout=30) as client:
-        if ACTIVE_MODE == ScrapeMode.LIST:
-            logger.info("Iniciando modo LIST... Busqueda de registros especificados.")
-            await scrape_list(client)
-        else:
-            logger.info("Iniciando modo ALL... Busqueda de todos los registros disponibles en la API.")
-            await scrape_all(client)
-
-    logger.info("Scraping completado.")
+    response.raise_for_status()
+    logger.info(f"[{filing_number}] Imagen obtenida correctamente.")
+    return response.content
 
 
 if __name__ == "__main__":
