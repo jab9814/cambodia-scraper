@@ -1,0 +1,47 @@
+[
+  {
+    "id": "KHT201459286",
+    "number": "KH/59286/14 (25-08-2014)",
+    "application_date": "25-08-2014",
+    "type_of_mark": "Stylized characters",
+    "title": "Eesatto ",
+    "owner": "DIAMOND POINT Sdn Bhd",
+    "address": "30, Jalan Puchong Intan 1, Taman Puchong Intan, 47100 Puchong Selangor",
+    "status": "Inactive (25-02-2025)",
+    "representative": "SEREY IP SERVICE",
+    "scraped_status": {
+      "html": true,
+      "image": true
+    }
+  },
+  {
+    "id": "KHT201983498",
+    "number": "KH/83498/19 (04-01-2019)",
+    "application_date": "04-01-2019",
+    "type_of_mark": "Combined",
+    "title": "FORCE",
+    "owner": "TIFORCE INTERNATIONAL CO., LTD.",
+    "address": " No. 650AB, Street 271, Sangkat Phsar Deum Thkov, Khan Chamcarmon,\nPhnom Penh",
+    "status": "Active (04-06-2020)",
+    "representative": "N/A",
+    "scraped_status": {
+      "html": true,
+      "image": true
+    }
+  },
+  {
+    "id": "KHT201249633",
+    "number": "KH/49633/12 (31-12-2012)",
+    "application_date": "31-12-2012",
+    "type_of_mark": "Stylized characters",
+    "title": "MINGFAI ",
+    "owner": "Ming Fai Enterprise International Co., Ltd.",
+    "address": "20th Floor, Laws Commercial Plaza, 788 Cheung Sha Wan Road, Kowloon",
+    "status": "Inactive (30-06-2023)",
+    "representative": "ANPHAMCO Co., Ltd. / KIMLY IP SERVICE",
+    "scraped_status": {
+      "html": true,
+      "image": true
+    }
+  }
+]
