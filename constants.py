@@ -21,8 +21,8 @@ class ScrapeMode(str, Enum):
     ALL = "all"
 
 
-MAX_RECORDS = 5
-PER_PAGE = 3
+MAX_RECORDS = 10
+PER_PAGE = 2
 
 # ACTIVE_MODE = ScrapeMode.ALL  # Para realizar la busqueda de todos los registros disponibles en la API (hasta MAX_RECORDS)
 ACTIVE_MODE = ScrapeMode.LIST  # Para realizar la busqueda con los filing numbers especificados en FILING_NUMBERS
