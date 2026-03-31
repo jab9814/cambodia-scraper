@@ -58,10 +58,10 @@ Los archivos `html` y `jpg` descargados se almacenan en la carpeta [output](outp
 
 ``` bash
 output/
-    trademarks.json         # Datos extraídos de todas las marcas procesadas
-    KH4963312_1.html        # Página de detalle
-    KH4963312_2.jpg         # Imagen de la marca
-    ...
+  ├──  KH4963312_1.html        # Página de detalle
+  ├──  KH4963312_2.jpg         # Imagen de la marca
+  ├──  ...
+  └──  trademarks.json         # Datos extraídos de todas las marcas procesadas
 ```
 
 Durante la extracción de la data, se creará un archivo json `trademarks.json`, el cual contendrá información ofrecida por la API de la fuente, como también la key `scraped_status` con indicación booleana si se logró descargar el archivo html y jpg correspondiente al FILING NUMBER
@@ -90,6 +90,40 @@ Durante la extracción de la data, se creará un archivo json `trademarks.json`,
 ## Registro de ejecución del script
 
 La ejecución del código se puede visualizar mediante consola como en el archivo `scraper.log` ubicado en la carpeta [logs](/logs/).
+
+```
+2026-03-31 10:29:02,920 [INFO] Obteniendo cookies de sesión con Playwright...
+2026-03-31 10:29:15,075 [INFO] Cookies de sesión obtenidas.
+2026-03-31 10:29:16,272 [INFO] Iniciando modo LIST... Busqueda de registros especificados.
+2026-03-31 10:29:16,273 [INFO] [KH/49633/12] Buscando en la API...
+2026-03-31 10:29:16,285 [INFO] [KH/59286/14] Buscando en la API...
+2026-03-31 10:29:16,288 [INFO] [KH/83498/19] Buscando en la API...
+2026-03-31 10:29:18,205 [INFO] [KH/83498/19] Encontrado: KHT201983498
+2026-03-31 10:29:18,205 [INFO] [KH/83498/19] Cargando HTML de detalle...
+2026-03-31 10:29:18,245 [INFO] [KH/59286/14] Encontrado: KHT201459286
+2026-03-31 10:29:18,245 [INFO] [KH/59286/14] Cargando HTML de detalle...
+2026-03-31 10:29:18,259 [INFO] [KH/49633/12] Encontrado: KHT201249633
+2026-03-31 10:29:18,260 [INFO] [KH/49633/12] Cargando HTML de detalle...
+2026-03-31 10:29:23,125 [INFO] [KH/59286/14] HTML obtenido correctamente.
+2026-03-31 10:29:23,126 [INFO] HTML guardado: output/KH5928614_1.html
+2026-03-31 10:29:23,126 [INFO] [KH/59286/14] Descargando imagen...
+2026-03-31 10:29:23,303 [INFO] [KH/83498/19] HTML obtenido correctamente.
+2026-03-31 10:29:23,304 [INFO] HTML guardado: output/KH8349819_1.html
+2026-03-31 10:29:23,304 [INFO] [KH/83498/19] Descargando imagen...
+2026-03-31 10:29:23,450 [INFO] [KH/49633/12] HTML obtenido correctamente.
+2026-03-31 10:29:23,451 [INFO] HTML guardado: output/KH4963312_1.html
+2026-03-31 10:29:23,452 [INFO] [KH/49633/12] Descargando imagen...
+2026-03-31 10:29:24,559 [INFO] [KH/59286/14] Imagen obtenida correctamente.
+2026-03-31 10:29:24,560 [INFO] Imagen guardada: output/KH5928614_2.jpg
+2026-03-31 10:29:24,561 [INFO] [KH/59286/14] Registro guardado en JSON.
+2026-03-31 10:29:25,317 [INFO] [KH/83498/19] Imagen obtenida correctamente.
+2026-03-31 10:29:25,318 [INFO] Imagen guardada: output/KH8349819_2.jpg
+2026-03-31 10:29:25,319 [INFO] [KH/83498/19] Registro guardado en JSON.
+2026-03-31 10:29:25,684 [INFO] [KH/49633/12] Imagen obtenida correctamente.
+2026-03-31 10:29:25,684 [INFO] Imagen guardada: output/KH4963312_2.jpg
+2026-03-31 10:29:25,685 [INFO] [KH/49633/12] Registro guardado en JSON.
+2026-03-31 10:29:25,775 [INFO] Scraping completado.
+```
 
 ---
 
@@ -132,7 +166,7 @@ El portal de Cambodia IP es una SPA que carga contenido dinámicamente. Al inspe
 
 **Playwright solo para cookies y HTML de detalle**
 
-La página de detalle es una SPA que renderiza el contenido vía JavaScript, por lo que necesita un browser real para obtener el HTML completo. Sin embargo, Playwright se usa de forma mínima: una sola vez al inicio para obtener las cookies de sesión, y luego por cada página de detalle. Todo lo demás (búsqueda en la API e imágenes) se resuelve con httpx, que es más liviano y rápido.
+La página de detalle es una SPA que renderiza el contenido vía JavaScript, por lo que necesita un browser real para obtener el HTML completo. Playwright se usa de forma mínima y eficiente: una sola vez al inicio para obtener las cookies de sesión, y con un único browser compartido para cargar todas las páginas de detalle. Cada marca abre y cierra solo una pestaña (`page`), no un browser completo, lo que reduce significativamente el consumo de recursos. Todo lo demás (búsqueda en la API e imágenes) se resuelve con httpx.
 
 **httpx para búsqueda e imágenes**
 
@@ -158,11 +192,11 @@ Las URLs, modos de operación y parámetros de imagen se definen como `Enum` en 
 
 ## Tiempo real invertido
 
-Aproximadamente **X horas**, distribuidas en:
+Aproximadamente **6 horas**, distribuidas en:
 
-- Investigación del sitio y análisis de las llamadas de red: ~X horas
-- Implementación del scraper: ~X horas
-- Pruebas y ajustes: ~X horas
+- Investigación del sitio y análisis de las llamadas de red: ~1 horas
+- Implementación del scraper: ~3 horas
+- Pruebas y ajustes: ~2 horas
 
 ## Autor
 
